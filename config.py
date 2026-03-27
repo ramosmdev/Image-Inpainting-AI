@@ -1,0 +1,5 @@
+IMG_SIZE = 128
+BATCH_SIZE = 16
+LR = 1e-4
+EPOCHS = 10
+DATA_PATH = "data/train"
