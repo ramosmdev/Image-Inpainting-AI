@@ -1,0 +1,12 @@
+# Python environments
+.venv/
+__pycache__/
+
+# Output and checkpoints
+outputs/
+checkpoints/
+
+# Datasets
+data/train/
+data/val/
+data/*.zip
