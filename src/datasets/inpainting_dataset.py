@@ -4,7 +4,7 @@ import torchvision.transforms as T
 from PIL import Image
 import random
 import os
-from utils.mask import random_mask
+from src.utils.mask import random_mask
 
 class InpaintingDataset(Dataset):
     def __init__(self, img_dir, size=128):

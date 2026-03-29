@@ -1,10 +1,10 @@
 import torch
 import torchvision.transforms as T
 from PIL import Image
-from models.unet import UNet
+from src.models.unet import UNet
 import os
 import glob
-from utils.visualize import save_sample
+from src.utils.visualize import save_sample
 import random
 
 def infer():
@@ -13,11 +13,11 @@ def infer():
     print(f"Inference running on {device}")
     
     model = UNet().to(device)
-    if os.path.exists("checkpoint.pth"):
-        model.load_state_dict(torch.load("checkpoint.pth", map_location=device))
-        print("Loaded checkpoint.pth successfully!")
+    if os.path.exists("checkpoints/checkpoint.pth"):
+        model.load_state_dict(torch.load("checkpoints/checkpoint.pth", map_location=device))
+        print("Loaded checkpoints/checkpoint.pth successfully!")
     else:
-        print("ERROR: checkpoint.pth not found! Did you run train.py?")
+        print("ERROR: checkpoints/checkpoint.pth not found! Did you run train.py?")
         return
     
     model.eval()
@@ -62,8 +62,8 @@ def infer():
 
     # 6. Save the preview comparison to disk
     # Grabs the first image from the batch
-    save_sample(masked_img.cpu(), final_output.cpu(), img_tensor.cpu(), "demo_result.png")
-    print("Success! Open 'demo_result.png' in your folder to see your AI inpainting results!")
+    save_sample(masked_img.cpu(), final_output.cpu(), img_tensor.cpu(), "outputs/demo_result.png")
+    print("Success! Open 'outputs/demo_result.png' in your folder to see your AI inpainting results!")
 
 if __name__ == '__main__':
     infer()
