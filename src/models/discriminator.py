@@ -16,12 +16,13 @@ class Discriminator(nn.Module):
         # By seeing the mask, the discriminator learns "is this hole fill plausible
         # *given the surrounding context*?" rather than blindly classifying the full image.
         # This is the key trick from pix2pix that gives much stronger adversarial signal.
+        # Spatial sizes assume 256×256 input:
         self.model = nn.Sequential(
-            *discriminator_block(4, 64, stride=2, normalize=False),   # 128x128 -> 64x64
-            *discriminator_block(64, 128, stride=2),  # 64x64 -> 32x32
-            *discriminator_block(128, 256, stride=2), # 32x32 -> 16x16
-            *discriminator_block(256, 512, stride=1), # 16x16 -> 15x15
-            nn.Conv2d(512, 1, 4, padding=1)           # Output: 1 channel validity map
+            *discriminator_block(4, 64, stride=2, normalize=False),   # 256×256 → 128×128
+            *discriminator_block(64, 128, stride=2),                   # 128×128 → 64×64
+            *discriminator_block(128, 256, stride=2),                  # 64×64   → 32×32
+            *discriminator_block(256, 512, stride=1),                  # 32×32   → 31×31
+            nn.Conv2d(512, 1, 4, padding=1)                            # Output: patch validity map
             # Note: No Sigmoid — BCEWithLogitsLoss expects raw logits!
         )
 

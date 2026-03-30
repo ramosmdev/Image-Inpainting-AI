@@ -7,6 +7,20 @@ import torch
 from torch.utils.data import DataLoader
 import time
 import os
+import logging
+import sys
+
+# Configure logging to both console.log and terminal
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(message)s',
+    datefmt='%H:%M:%S',
+    handlers=[
+        logging.FileHandler("console.log", mode='w', encoding='utf-8'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -23,7 +37,7 @@ def main():
     discriminator = Discriminator().to(device)
     
     # Setup Perceptual VGG Loss (Frozen weights)
-    print("Loading VGG-16 for Perceptual Loss...")
+    logger.info("Loading VGG-16 for Perceptual Loss...")
     perceptual_criterion = PerceptualLoss().to(device)
     perceptual_criterion.eval()
     
@@ -45,9 +59,9 @@ def main():
 
     os.makedirs("checkpoints", exist_ok=True)
 
-    print(f"Starting GAN training with Perceptual Loss on {device}...")
-    print(f"Phase 1 (epochs 0-{perceptual_warmup_epoch-1}): Pixel + Adversarial loss only (building structure)")
-    print(f"Phase 2 (epochs {perceptual_warmup_epoch}+): Adding Perceptual loss to sharpen textures")
+    logger.info(f"Starting GAN training with Perceptual Loss on {device}...")
+    logger.info(f"Phase 1 (epochs 0-{perceptual_warmup_epoch-1}): Pixel + Adversarial loss only (building structure)")
+    logger.info(f"Phase 2 (epochs {perceptual_warmup_epoch}+): Adding Perceptual loss to sharpen textures")
     for epoch in range(config.EPOCHS):
         start_time = time.time()
         epoch_loss_G = 0.0
@@ -126,11 +140,11 @@ def main():
             epoch_loss_D += loss_D.item()
 
             if batch_idx % 20 == 0:
-                print(f"Epoch {epoch} | Batch {batch_idx}/{len(loader)} | Loss D: {loss_D.item():.4f} | Loss G: {loss_G.item():.4f}")
+                logger.info(f"Epoch {epoch} | Batch {batch_idx}/{len(loader)} | Loss D: {loss_D.item():.4f} | Loss G: {loss_G.item():.4f}")
 
         avg_loss_G = epoch_loss_G / len(loader)
         avg_loss_D = epoch_loss_D / len(loader)
-        print(f"--> Epoch {epoch} completed in {time.time() - start_time:.2f} seconds. Avg G: {avg_loss_G:.4f} | Avg D: {avg_loss_D:.4f}")
+        logger.info(f"--> Epoch {epoch} completed in {time.time() - start_time:.2f} seconds. Avg G: {avg_loss_G:.4f} | Avg D: {avg_loss_D:.4f}")
         
         # Save the UNet weights
         torch.save(generator.state_dict(), "checkpoints/checkpoint.pth")

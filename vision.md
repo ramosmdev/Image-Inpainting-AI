@@ -6,7 +6,7 @@ Our goal is to create a state-of-the-art Image Inpainting solution that remains 
 
 ## Phase 1: Improving Generation Quality
 
-1. **Irregular Masks**: Transition from generating random square boxes to generating random, irregular "brush stroke" masks. Real-world users don't mask perfectly square regions; they brush over objects they want to eliminate.
+1. **✅ Completed: Irregular Masks**: Transitioned from generating random square boxes to generating random, irregular "brush stroke" masks using a random-walk polyline algorithm (`src/utils/mask.py`). Real-world users don't mask perfectly square regions; they brush over objects they want to eliminate. The new masks paint 1–3 thick strokes along random paths, producing organic, blob-shaped holes.
 
 2. **✅ Completed: Advanced GAN Architecture (Conditional PatchGAN)**: We successfully replaced the blurry L1 loss system with a state-of-the-art 3-way balance:
     - **Context Loss (Weighted L1)**: Anchors the underlying structure. The hole region is penalized 6× more than the visible area to focus gradients where learning is needed.
@@ -21,7 +21,7 @@ Our goal is to create a state-of-the-art Image Inpainting solution that remains 
 
 ## Phase 2: Architectural Evolution
 
-1. **Higher Resolution Training**: Currently training at 128×128. Moving to 256×256 or 512×512 would dramatically improve texture fidelity. Requires more VRAM and compute.
+1. **✅ Completed: Higher Resolution Training**: Upgraded from 128×128 → 256×256. Simultaneously deepened the UNet from 3 to 4 encoder/decoder levels (bottleneck now at 16×16), added BatchNorm to all conv blocks, and adjusted BATCH_SIZE from 16 → 8 to compensate for ~4× VRAM increase.
 
 2. **Attention Mechanisms**: Implementing Self-Attention blocks or transitioning to a Vision Transformer (ViT) backbone to help the model understand global image context better than standard convolutions.
 
