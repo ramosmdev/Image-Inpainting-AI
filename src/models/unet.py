@@ -12,6 +12,19 @@ def conv_block(in_c, out_c):
         nn.ReLU(inplace=True),
     )
 
+def dilated_conv_block(in_c, out_c, dilation=2):
+    """Dilated convolution block to increase receptive field in the bottleneck."""
+    # padding = dilation ensures the output spatial dimensions match the input
+    pad = dilation
+    return nn.Sequential(
+        nn.Conv2d(in_c, out_c, 3, padding=pad, dilation=dilation),
+        nn.BatchNorm2d(out_c),
+        nn.ReLU(inplace=True),
+        nn.Conv2d(out_c, out_c, 3, padding=pad, dilation=dilation),
+        nn.BatchNorm2d(out_c),
+        nn.ReLU(inplace=True),
+    )
+
 class UNet(nn.Module):
     """
     Deeper 4-level U-Net for 256×256 inpainting.
@@ -44,7 +57,9 @@ class UNet(nn.Module):
         self.pool4 = nn.MaxPool2d(2)
 
         # --- Bottleneck ---
-        self.bottleneck = conv_block(512, 1024)  # 16×16
+        # Dilated convolutions here double the receptive field horizontally and vertically
+        # without reducing resolution further, allowing the model to "see" better context.
+        self.bottleneck = dilated_conv_block(512, 1024, dilation=2)  # 16×16
 
         # --- Decoder ---
         self.up4 = nn.ConvTranspose2d(1024, 512, 2, stride=2)

@@ -11,7 +11,7 @@ The core architecture defined in `src/models/unet.py` is a **deep U-Net**. A U-N
 ### How it processes data:
 - **Input Concatenation**: The network receives an image and its corresponding binary mask. Instead of processing them separately, we concatenate them along the channel dimension. A 3-channel RGB image + a 1-channel mask becomes a **4-channel input**.
 - **Encoder Path**: The network compresses spatial dimensions while increasing feature channels via 4 separate `conv_blocks` (Conv2D → BatchNorm → ReLU × 2) followed by MaxPooling. Channels grow: **64 → 128 → 256 → 512 → 1024** (bottleneck).
-- **Bottleneck**: At 16×16 spatial resolution (1/16th of the 256×256 input), the 1024-channel bottleneck forces the model to build a **wide global context** before filling any hole. This is the key upgrade from the previous 3-level design, which bottlenecked at 32×32.
+- **Bottleneck**: At 16×16 spatial resolution (1/16th of the 256×256 input), a 1024-channel bottleneck with **Dilated Convolutions (dilation=2)** forces the model to build a **wide global context** before filling any hole. This significantly increases the receptive field without adding parameters, enabling the model to better understand global symmetry.
 - **Decoder Path**: Using `ConvTranspose2d`, the network scales feature maps back up. At each step it **concatenates** features from the corresponding Encoder step (skip connections). This prevents the loss of high-resolution spatial detail.
 - **BatchNorm**: Added to every conv block. At the increased depth (4 levels) and resolution (256×256), BatchNorm stabilizes gradient flow and prevents activation explosion.
 - **Output**: The final output is forced through a `Sigmoid` activation, bounding pixel predictions strictly between 0 and 1, matching the normalized image format.
@@ -52,7 +52,7 @@ Block 3: 256ch @ 32×32
 Block 4: 512ch @ 31×31
 Output:  1ch   @ patch map (raw logits)
 ```
-Outputs raw logits (no Sigmoid), consumed by `BCEWithLogitsLoss` for numerical stability.
+Outputs raw logits (no Sigmoid), consumed by `MSELoss` (LSGAN) for stable, non-saturating gradients.
 
 ---
 
@@ -88,12 +88,17 @@ loss = (hole_L1 × 6.0) + valid_L1
 - `valid_L1`: average absolute error on the visible context region (`mask`).
 - The 6× hole weighting ensures gradients focus where the model must actually hallucinate.
 
-### 4b. Adversarial Loss
+### 4b. Adversarial Loss (LSGAN)
 ```
-g_adv_loss = BCEWithLogitsLoss(discriminator(comp_img, mask), ones)
+g_adv_loss = MSELoss(discriminator(comp_img, mask), ones)
 ```
+- We use **Least Squares GAN (LSGAN)** instead of BCE. MSELoss provides non-saturating gradients, pushing the Generator to match the Real distribution more precisely rather than stopping at a blurry mean.
 - The Generator is rewarded for producing outputs the conditional Discriminator cannot distinguish from real.
-- `lambda_adv = 0.3` — increased to give this signal real weight after the discriminator upgrade.
+- `lambda_adv = 0.3` — gives this signal real weight.
+
+### 4c. Optimizer and TTUR
+- Equal learning rates are used for both Generator and Discriminator (`LR = 2e-4`). A strong, fast Discriminator acts as a "tough critic" to prevent the Generator from reaching a lazy equilibrium.
+- A **Linear Learning Rate Decay** reduces the LR to 0 over the final 50 epochs, allowing the model to "settle" on fine details.
 
 ### 4c. Perceptual Loss (VGG-16, Progressive Warmup)
 ```

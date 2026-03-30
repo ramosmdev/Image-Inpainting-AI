@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 from torchvision.models import vgg16, VGG16_Weights
 
-# New Adversarial Loss for GAN
-adversarial_loss = nn.BCEWithLogitsLoss()
+# New Adversarial Loss for LSGAN (Least Squares GAN)
+# Provides non-saturating gradients and better stability compared to BCE
+adversarial_loss = nn.MSELoss()
 
 def inpainting_loss(pred, target, mask):
     missing = 1 - mask

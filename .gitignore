@@ -10,3 +10,6 @@ checkpoints/
 data/train/
 data/val/
 data/*.zip
+
+# Zip
+Image-Inpainting-AI.zip

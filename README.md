@@ -26,14 +26,15 @@ Image-Inpainting-AI/
 │
 ├── src/                        # Core AI modules
 │   ├── models/                 # Neural networks (unet.py, discriminator.py)
-│   ├── losses/                 # Loss functions (loss.py w/ VGG & GAN BCE)
+│   ├── losses/                 # Loss functions (loss.py w/ VGG & LSGAN MSE)
 │   ├── datasets/               # PyTorch dataset wrappers (inpainting_dataset.py)
 │   ├── utils/                  # Helper scripts (mask.py, visualize.py)
 │   └── config.py               # Global configuration
 │
 ├── docs/                       # Comprehensive documentation
 │   ├── architecture.md         # Network architecture details
-│   └── training_guide.md       # Hardware optimization and training guide
+│   ├── training_guide.md       # Hardware optimization and training guide
+│   └── training_log.md         # Chronological record of training sessions
 │
 ├── checkpoints/                # Saved model weights
 ├── outputs/                    # Generated result images

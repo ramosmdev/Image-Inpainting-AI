@@ -41,9 +41,20 @@ def main():
     perceptual_criterion = PerceptualLoss().to(device)
     perceptual_criterion.eval()
     
-    # Dual Optimizers (TTUR: Discriminator learns slower than Generator to prevent Mode Collapse!)
+    # Dual Optimizers (TTUR: Equal learning rates for LSGAN to create a tougher critic!)
     optimizer_G = torch.optim.Adam(generator.parameters(), lr=config.LR, betas=(0.5, 0.999))
-    optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=config.LR * 0.1, betas=(0.5, 0.999))
+    optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=config.LR, betas=(0.5, 0.999))
+
+    # Learning Rate Schedulers (Linear decay starting at epoch 100)
+    def lr_lambda(epoch):
+        decay_start = 100
+        if epoch < decay_start:
+            return 1.0
+        else:
+            return max(0.0, 1.0 - (epoch - decay_start) / (config.EPOCHS - decay_start))
+            
+    scheduler_G = torch.optim.lr_scheduler.LambdaLR(optimizer_G, lr_lambda)
+    scheduler_D = torch.optim.lr_scheduler.LambdaLR(optimizer_D, lr_lambda)
 
     # --- Loss Weights ---
     # Adversarial loss (BCE logits) outputs ~0.3-1.0.
@@ -148,6 +159,10 @@ def main():
         
         # Save the UNet weights
         torch.save(generator.state_dict(), "checkpoints/checkpoint.pth")
+        
+        # Step the learning rate schedulers
+        scheduler_G.step()
+        scheduler_D.step()
 
 if __name__ == '__main__':
     main()

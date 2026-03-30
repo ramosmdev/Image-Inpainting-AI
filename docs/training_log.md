@@ -65,3 +65,32 @@ Two full 50-epoch training runs completed. Identified and fixed two critical tra
 2. **Irregular masks** — replace square boxes with brush-stroke masks (see `vision.md`)
 3. **Higher resolution** — training at 256×256 instead of 128×128 would allow the model to capture finer texture detail
 
+---
+
+## Session 4 — Resolution & Architecture Upgrade
+
+### Summary
+Upgraded the overall scale of the model.
+
+**Changes:**
+- `IMG_SIZE` increased to 256×256.
+- `BATCH_SIZE` halved to 8 to fit in VRAM.
+- `EPOCHS` tripled to 150.
+- **Deeper UNet**: Added a 4th encoder/decoder level (16×16 bottleneck) and `BatchNorm2d`.
+- **Irregular Masks**: Replaced square masks with random-walk brush strokes.
+
+**Result:** Training ran for 150 epochs. The GAN reached a stable equilibrium (`Avg D ≈ 0.64`, `Avg G ≈ 1.63`), but visual quality plateaued. The Discriminator was not challenging the Generator enough (gradients saturated), resulting in blurry outputs.
+
+---
+
+## Session 5 — Breaking the Plateau (LSGAN + Dilated Convs)
+
+### Summary
+We identified the cause of the "blurry equilibrium" and overhauled the GAN mechanics to force finer detail generation.
+
+### Upgrades Implemented:
+1. **LSGAN (MSELoss)**: Switched the adversarial loss from `BCEWithLogitsLoss` to `MSELoss`. Provides stronger gradients for "mostly correct" samples, penalizing them based on distance from the decision boundary.
+2. **TTUR Balance**: Equalized the Discriminator learning rate from `0.1 * LR` to `1.0 * LR`. A faster critic forces the Generator to try harder.
+3. **Dilated Convolutions**: Replaced the standard convolutions in the UNet bottleneck with Dilated Convolutions (`dilation=2`). This doubles the receptive field horizontally and vertically at the lowest resolution (16×16), significantly improving the model's understanding of global context and symmetry.
+4. **Learning Rate Decay**: Added a `LambdaLR` scheduler to linearly decay both optimizers' learning rates to 0 over the final 50 epochs, allowing the model to smoothly converge.
+5. **Structured Logging**: Added a Python `logging` setup to trace `.log` and `.csv` metrics.
