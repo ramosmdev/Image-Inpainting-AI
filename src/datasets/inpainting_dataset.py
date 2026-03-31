@@ -6,12 +6,18 @@ import random
 import os
 from src.utils.mask import random_mask
 
+import src.config as config
+
 class InpaintingDataset(Dataset):
-    def __init__(self, img_dir, size=128):
+    def __init__(self, img_dir, size=None):
         self.img_dir = img_dir
         self.files = os.listdir(img_dir)
+        
+        # Use config.IMG_SIZE if no size is specified
+        target_size = size if size is not None else config.IMG_SIZE
+        
         self.transform = T.Compose([
-            T.Resize((size, size)),
+            T.Resize((target_size, target_size)),
             T.ToTensor()
         ])
 

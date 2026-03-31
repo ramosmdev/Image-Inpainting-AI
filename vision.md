@@ -23,7 +23,7 @@ Our goal is to create a state-of-the-art Image Inpainting solution that remains 
 
 1. **✅ Completed: Higher Resolution Training**: Upgraded from 128×128 → 256×256. Simultaneously deepened the UNet from 3 to 4 encoder/decoder levels (bottleneck now at 16×16), added BatchNorm to all conv blocks, and adjusted BATCH_SIZE from 16 → 8 to compensate for ~4× VRAM increase.
 
-2. **Attention Mechanisms**: Implementing Self-Attention blocks or transitioning to a Vision Transformer (ViT) backbone to help the model understand global image context better than standard convolutions.
+2. **✅ Completed: Attention Mechanisms**: Implemented Self-Attention (Scaled Dot-Product) at the UNet 16x16 bottleneck. This dynamically routes global context to patches, allowing the model to explicitly understand long-range spatial dependencies (such as symmetry) far better than convolutional operators alone.
 
 3. **Latent Diffusion**: As a long-term goal, we may transition the architecture to a Stable-Diffusion-style architecture for significantly higher fidelity generation.
 

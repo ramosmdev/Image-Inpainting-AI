@@ -1,4 +1,4 @@
-# Architecture Deep Dive
+ # Architecture Deep Dive
 
 This document outlines the technical architecture of the Image Inpainting AI, explaining the Neural Networks, the Data Loading strategy, and the Loss mechanisms.
 
@@ -11,7 +11,7 @@ The core architecture defined in `src/models/unet.py` is a **deep U-Net**. A U-N
 ### How it processes data:
 - **Input Concatenation**: The network receives an image and its corresponding binary mask. Instead of processing them separately, we concatenate them along the channel dimension. A 3-channel RGB image + a 1-channel mask becomes a **4-channel input**.
 - **Encoder Path**: The network compresses spatial dimensions while increasing feature channels via 4 separate `conv_blocks` (Conv2D → BatchNorm → ReLU × 2) followed by MaxPooling. Channels grow: **64 → 128 → 256 → 512 → 1024** (bottleneck).
-- **Bottleneck**: At 16×16 spatial resolution (1/16th of the 256×256 input), a 1024-channel bottleneck with **Dilated Convolutions (dilation=2)** forces the model to build a **wide global context** before filling any hole. This significantly increases the receptive field without adding parameters, enabling the model to better understand global symmetry.
+- **Bottleneck**: At 16×16 spatial resolution (1/16th of the 256×256 input), a 1024-channel bottleneck with **Dilated Convolutions (dilation=2)** forces the model to build a wide global context. This is immediately followed by a **Self-Attention Layer (Scaled Dot-Product Attention)** which allows the network to compute direct long-range dependencies across the image mapping, vastly improving structural symmetry.
 - **Decoder Path**: Using `ConvTranspose2d`, the network scales feature maps back up. At each step it **concatenates** features from the corresponding Encoder step (skip connections). This prevents the loss of high-resolution spatial detail.
 - **BatchNorm**: Added to every conv block. At the increased depth (4 levels) and resolution (256×256), BatchNorm stabilizes gradient flow and prevents activation explosion.
 - **Output**: The final output is forced through a `Sigmoid` activation, bounding pixel predictions strictly between 0 and 1, matching the normalized image format.

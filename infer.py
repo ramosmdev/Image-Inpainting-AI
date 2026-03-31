@@ -6,6 +6,7 @@ import os
 import glob
 from src.utils.visualize import save_sample
 import random
+from src.config import IMG_SIZE
 
 def infer():
     # 1. Setup the GPU and Load Model
@@ -28,42 +29,56 @@ def infer():
         print("Could not find any images in data/tests/")
         return
         
-    img_path = images[0]
-    print(f"Testing on {img_path}...")
+    for img_path in images:
+        print(f"Testing on {img_path}...")
 
-    # Load and transform image
-    try:
-        img = Image.open(img_path).convert("RGB")
-    except Exception as e:
-        print(f"Could not load image: {e}")
-        return
+        # Load and transform image
+        try:
+            img = Image.open(img_path).convert("RGB")
+        except Exception as e:
+            print(f"Could not load image: {e}")
+            continue
 
-    transform = T.Compose([T.Resize((128, 128)), T.ToTensor()])
-    img_tensor = transform(img).unsqueeze(0).to(device)
+        transform = T.Compose([T.Resize((IMG_SIZE, IMG_SIZE)), T.ToTensor()])
+        img_tensor = transform(img).unsqueeze(0).to(device)
 
-    # 3. Create a random square mask
-    _, _, h, w = img_tensor.shape
-    mask = torch.ones((1, 1, h, w)).to(device)
-    mask_size = random.randint(20, 50)
-    x = random.randint(0, w - mask_size)
-    y = random.randint(0, h - mask_size)
-    mask[:, :, y:y+mask_size, x:x+mask_size] = 0
+        # 3. Create two different masks to test both approaches
+        _, _, h, w = img_tensor.shape
+        
+        # Mode 1: Single large black square
+        mask_single = torch.ones((1, 1, h, w)).to(device)
+        mask_size_single = random.randint(40, 80)
+        x_s = random.randint(0, w - mask_size_single)
+        y_s = random.randint(0, h - mask_size_single)
+        mask_single[:, :, y_s:y_s+mask_size_single, x_s:x_s+mask_size_single] = 0
 
-    # The area to be predicted is blacked out
-    masked_img = img_tensor * mask
+        # Mode 2: 5 to 10 medium black squares (covering bad pixels)
+        mask_multi = torch.ones((1, 1, h, w)).to(device)
+        num_patches = random.randint(5, 10)
+        for _ in range(num_patches):
+            mask_size = random.randint(15, 30)
+            x_m = random.randint(0, w - mask_size)
+            y_m = random.randint(0, h - mask_size)
+            mask_multi[:, :, y_m:y_m+mask_size, x_m:x_m+mask_size] = 0
 
-    # 4. Neural Network Inference
-    with torch.no_grad():
-        with torch.amp.autocast("cuda", enabled=(device=="cuda")):
-            pred = model(masked_img, mask)
-    
-    # 5. Combine the image: Original pixels where mask is 1, Predicted pixels where mask is 0
-    final_output = (img_tensor * mask) + (pred * (1 - mask))
+        filename = os.path.basename(img_path)
 
-    # 6. Save the preview comparison to disk
-    # Grabs the first image from the batch
-    save_sample(masked_img.cpu(), final_output.cpu(), img_tensor.cpu(), "outputs/demo_result.png")
-    print("Success! Open 'outputs/demo_result.png' in your folder to see your AI inpainting results!")
+        for mode_name, mask in [('single', mask_single), ('multi', mask_multi)]:
+            # The area to be predicted is blacked out
+            masked_img = img_tensor * mask
+
+            # 4. Neural Network Inference
+            with torch.no_grad():
+                with torch.amp.autocast("cuda", enabled=(device=="cuda")):
+                    pred = model(masked_img, mask)
+            
+            # 5. Combine the image: Original pixels where mask is 1, Predicted pixels where mask is 0
+            final_output = (img_tensor * mask) + (pred * (1 - mask))
+
+            # 6. Save the preview comparison to disk
+            output_path = f"outputs/result_{mode_name}_{filename}"
+            save_sample(masked_img.cpu(), final_output.cpu(), img_tensor.cpu(), output_path)
+            print(f"  -> Saved {mode_name} result to '{output_path}'")
 
 if __name__ == '__main__':
     infer()

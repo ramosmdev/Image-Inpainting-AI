@@ -25,6 +25,50 @@ def dilated_conv_block(in_c, out_c, dilation=2):
         nn.ReLU(inplace=True),
     )
 
+class SelfAttention(nn.Module):
+    """
+    Self-Attention Layer (Scaled Dot-Product Attention)
+    Allows the model to learn long-range global dependencies across the image
+    (e.g., matching the symmetry of the left and right eye even if they are far apart).
+
+    Variables represent queries (q), keys (k), and values (v).
+    """
+    def __init__(self, in_dim):
+        super(SelfAttention, self).__init__()
+        # Reduce channel depth by 8 for Q and K to save compute/memory overhead
+        self.query_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
+        self.value_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
+        
+        # Learnable scale parameter to smoothly ease the attention into the network
+        self.gamma = nn.Parameter(torch.zeros(1))
+        self.softmax = nn.Softmax(dim=-1)
+
+    def forward(self, x):
+        batch_size, C, width, height = x.size()
+        N = width * height
+        
+        # Q: B x C/8 x N -> Transpose to B x N x C/8
+        proj_query = self.query_conv(x).view(batch_size, -1, N).permute(0, 2, 1)
+        
+        # K: B x C/8 x N
+        proj_key = self.key_conv(x).view(batch_size, -1, N)
+        
+        # Attention Matrix: B x N x N
+        # (Pixel similarity scores across the whole image)
+        energy = torch.bmm(proj_query, proj_key)
+        attention = self.softmax(energy)
+        
+        # V: B x C x N
+        proj_value = self.value_conv(x).view(batch_size, -1, N)
+        
+        # Apply attention scores to V
+        out = torch.bmm(proj_value, attention.permute(0, 2, 1))
+        out = out.view(batch_size, C, width, height)
+        
+        # Skip connection: return the original features + the attended features
+        return x + self.gamma * out
+
 class UNet(nn.Module):
     """
     Deeper 4-level U-Net for 256×256 inpainting.
@@ -60,6 +104,9 @@ class UNet(nn.Module):
         # Dilated convolutions here double the receptive field horizontally and vertically
         # without reducing resolution further, allowing the model to "see" better context.
         self.bottleneck = dilated_conv_block(512, 1024, dilation=2)  # 16×16
+        
+        # Self-Attention block enables dynamic global context
+        self.attn = SelfAttention(1024)
 
         # --- Decoder ---
         self.up4 = nn.ConvTranspose2d(1024, 512, 2, stride=2)
@@ -87,8 +134,9 @@ class UNet(nn.Module):
         e3 = self.enc3(self.pool2(e2))
         e4 = self.enc4(self.pool3(e3))
 
-        # Bottleneck
+        # Bottleneck + Self-Attention
         b = self.bottleneck(self.pool4(e4))
+        b = self.attn(b)
 
         # Decode with skip connections
         d4 = self.up4(b)
