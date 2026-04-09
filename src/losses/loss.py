@@ -46,9 +46,10 @@ class PerceptualLoss(nn.Module):
         y = (y - mean) / std
         
         loss = 0.0
+        fx, fy = x, y
         for block in self.blocks:
-            x = block(x)
-            y = block(y)
+            fx = block(fx)
+            fy = block(fy)
             # Compare feature maps using L1 distance
-            loss += torch.nn.functional.l1_loss(x, y)
+            loss += torch.nn.functional.l1_loss(fx, fy)
         return loss

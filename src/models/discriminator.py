@@ -23,7 +23,7 @@ class Discriminator(nn.Module):
             *discriminator_block(128, 256, stride=2),                  # 64×64   → 32×32
             *discriminator_block(256, 512, stride=1),                  # 32×32   → 31×31
             nn.Conv2d(512, 1, 4, padding=1)                            # Output: patch validity map
-            # Note: No Sigmoid — BCEWithLogitsLoss expects raw logits!
+            # No Sigmoid — outputs raw logits for LSGAN (MSELoss)
         )
 
     def forward(self, img, mask):

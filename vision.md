@@ -31,7 +31,8 @@ Our goal is to create a state-of-the-art Image Inpainting solution that remains 
 
 ## Phase 3: Usability and Deployment
 
-1. **Web Interface (Gradio/Streamlit)**: Build a simple web frontend where users can upload an image, draw a mask over an object they want removed, and instantly receive the inpainted result.
+1. **✅ Completed: Web Interface (Gradio)**: Built a simple `app.py` web frontend where users can upload an image, draw a mask locally over an object they want removed, and instantly receive the inpainted result utilizing the trained GAN.
+    - *Robustness Update*: UI logic upgraded to dynamically compute nearest-16 aspect ratios (preventing convolution distortion on portrait photos) and enforcing NEAREST neighbor mask interpolation to prevent anti-aliasing edge leaks.
 
 2. **ONNX / TensorRT Export**: Export the PyTorch model to standard inference formats to deploy to mobile devices or web browsers directly.
 

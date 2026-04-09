@@ -61,9 +61,13 @@ def infer():
             y_m = random.randint(0, h - mask_size)
             mask_multi[:, :, y_m:y_m+mask_size, x_m:x_m+mask_size] = 0
 
+        # Mode 3: Organic brush strokes (matches training distribution)
+        from src.utils.mask import random_mask
+        mask_brush = random_mask(img_tensor.squeeze(0)).unsqueeze(0).to(device)
+
         filename = os.path.basename(img_path)
 
-        for mode_name, mask in [('single', mask_single), ('multi', mask_multi)]:
+        for mode_name, mask in [('single', mask_single), ('multi', mask_multi), ('brush', mask_brush)]:
             # The area to be predicted is blacked out
             masked_img = img_tensor * mask
 

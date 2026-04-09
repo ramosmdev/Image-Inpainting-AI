@@ -91,7 +91,7 @@ def main():
             lambda_perceptual = lambda_perceptual_final * progress
         
         for batch_idx, (masked_img, mask, real_img) in enumerate(loader):
-             # SPEED OPTIMIZATION 3: non_blocking=True for async transfers to the GPU
+            # SPEED OPTIMIZATION 3: non_blocking=True for async transfers to the GPU
             masked_img = masked_img.to(device, non_blocking=True)
             mask = mask.to(device, non_blocking=True)
             real_img = real_img.to(device, non_blocking=True)

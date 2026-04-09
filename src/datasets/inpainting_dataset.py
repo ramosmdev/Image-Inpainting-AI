@@ -24,18 +24,6 @@ class InpaintingDataset(Dataset):
     def __len__(self):
         return len(self.files)
 
-    def random_mask(self, img):
-        _, h, w = img.shape
-        mask = torch.ones((1, h, w))
-
-        # máscara cuadrada random
-        mask_size = random.randint(20, 50)
-        x = random.randint(0, w - mask_size)
-        y = random.randint(0, h - mask_size)
-
-        mask[:, y:y+mask_size, x:x+mask_size] = 0
-        return mask
-
     def __getitem__(self, idx):
         img_path = os.path.join(self.img_dir, self.files[idx])
         img = Image.open(img_path).convert("RGB")
